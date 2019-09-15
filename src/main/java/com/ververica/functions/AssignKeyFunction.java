@@ -1,7 +1,7 @@
-package com.dataartisans.functions;
+package com.ververica.functions;
 
-import com.dataartisans.data.DataPoint;
-import com.dataartisans.data.KeyedDataPoint;
+import com.ververica.data.DataPoint;
+import com.ververica.data.KeyedDataPoint;
 import org.apache.flink.api.common.functions.MapFunction;
 
 public class AssignKeyFunction implements MapFunction<DataPoint<Double>, KeyedDataPoint<Double>> {

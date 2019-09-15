@@ -1,12 +1,9 @@
-package com.dataartisans.sources;
+package com.ververica.sources;
 
-import com.dataartisans.data.DataPoint;
+import com.ververica.data.DataPoint;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.metrics.Counter;
-import org.apache.flink.metrics.Meter;
 import org.apache.flink.streaming.api.checkpoint.ListCheckpointed;
 import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
-import org.apache.flink.streaming.api.watermark.Watermark;
 
 import java.util.Collections;
 import java.util.List;
@@ -38,7 +35,6 @@ public class TimestampSource extends RichSourceFunction<DataPoint<Long>> impleme
     while (running) {
       synchronized (ctx.getCheckpointLock()) {
         ctx.collectWithTimestamp(new DataPoint<>(currentTimeMs, 0L), currentTimeMs);
-        ctx.emitWatermark(new Watermark(currentTimeMs));
         currentTimeMs += periodMs;
       }
       timeSync();

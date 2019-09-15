@@ -1,7 +1,7 @@
-package com.dataartisans.sinks;
+package com.ververica.sinks;
 
-import com.dataartisans.data.DataPoint;
-import com.dataartisans.data.KeyedDataPoint;
+import com.ververica.data.DataPoint;
+import com.ververica.data.KeyedDataPoint;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.influxdb.InfluxDB;

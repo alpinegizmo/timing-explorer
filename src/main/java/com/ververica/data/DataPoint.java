@@ -1,4 +1,4 @@
-package com.dataartisans.data;
+package com.ververica.data;
 
 public class DataPoint<T> {
 

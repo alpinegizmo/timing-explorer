@@ -1,12 +1,13 @@
-package com.dataartisans.functions;
+package com.ververica.functions;
 
-import com.dataartisans.data.DataPoint;
-import org.apache.flink.api.common.functions.RichMapFunction;
+import com.ververica.data.DataPoint;
+
+import org.apache.flink.api.common.functions.MapFunction;
 
 /*
  * Expects a sawtooth wave as input!
  */
-public class SquareWaveFunction extends RichMapFunction<DataPoint<Double>, DataPoint<Double>> {
+public class SquareWaveFunction implements MapFunction<DataPoint<Double>, DataPoint<Double>> {
   @Override
   public DataPoint<Double> map(DataPoint<Double> dataPoint) throws Exception {
     double value = 0.0;

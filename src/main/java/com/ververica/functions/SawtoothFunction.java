@@ -1,6 +1,6 @@
-package com.dataartisans.functions;
+package com.ververica.functions;
 
-import com.dataartisans.data.DataPoint;
+import com.ververica.data.DataPoint;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
