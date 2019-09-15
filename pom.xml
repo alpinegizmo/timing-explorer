@@ -20,19 +20,19 @@ under the License.
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	
-	<groupId>com.dataartisans</groupId>
-	<artifactId>oscon</artifactId>
-	<version>1.1</version>
+	<groupId>com.ververica</groupId>
+	<artifactId>timedemo</artifactId>
+	<version>2.0.0</version>
 	<packaging>jar</packaging>
 
-	<name>Flink Quickstart Job</name>
+	<name>Flink Demo Job</name>
 	<url>http://www.myorganization.org</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<log4j.version>2.10.0</log4j.version>
-		<flink.version>1.8.0</flink.version>
-        <scala.binary.version>2.12</scala.binary.version>
+		<flink.version>1.9.0</flink.version>
+        <scala.binary.version>2.11</scala.binary.version>
 	</properties>
 
 	<repositories>
@@ -98,11 +98,6 @@ under the License.
 			<groupId>org.influxdb</groupId>
 			<artifactId>influxdb-java</artifactId>
 			<version>2.3</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-connector-kafka-0.9_${scala.binary.version}</artifactId>
-			<version>${flink.version}</version>
 		</dependency>
 
 		<dependency>
@@ -296,7 +291,7 @@ under the License.
 							<transformers>
 								<!-- add Main-Class to manifest file -->
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>com.dataartisans.jobs.OsconJob</mainClass>
+									<mainClass>com.ververica.jobs.TimeDemo</mainClass>
 								</transformer>
 							</transformers>
 							<createDependencyReducedPom>false</createDependencyReducedPom>
