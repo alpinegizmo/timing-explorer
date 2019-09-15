@@ -1,3 +1,3 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 curl -u admin:admin http://grafana:3000/api/dashboards/db -d @/tmp/dashboard.json --header "Content-Type: application/json"

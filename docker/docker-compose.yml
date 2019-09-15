@@ -1,5 +1,5 @@
 influxdb:
-  image: 'influxdb:1.5.4'
+  image: 'influxdb:1.5.4-alpine'
   container_name: influxdb
   ports:
     - "8086:8086"
@@ -9,7 +9,7 @@ influxdb:
     - INFLUXDB_REPORTING_DISABLED=false
 
 grafana:
-  image: 'grafana/grafana:5.2.1'
+  image: 'grafana/grafana:5.1.0'
   container_name: grafana
   ports:
     - "3000:3000"
