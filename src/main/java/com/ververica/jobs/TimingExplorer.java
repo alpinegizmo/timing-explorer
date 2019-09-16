@@ -42,11 +42,10 @@ public class TimingExplorer {
       env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
     }
 
-    env.enableCheckpointing(10000);
+    env.enableCheckpointing(1000);
 
     // Simulate some sensor data
-    DataStream<KeyedDataPoint<Double>> sensorStream = generateSensorData(env)
-            .assignTimestampsAndWatermarks(new SensorDataWatermarkAssigner());
+    DataStream<KeyedDataPoint<Double>> sensorStream = generateSensorData(env);
 
     // Write this sensor stream out to InfluxDB
     sensorStream
@@ -64,7 +63,7 @@ public class TimingExplorer {
             .name("summed-sensors-sink");
 
     // execute program
-    env.execute("Flink Time Demo");
+    env.execute("Flink Timing Explorer");
   }
 
   private static DataStream<KeyedDataPoint<Double>> generateSensorData(StreamExecutionEnvironment env) {
@@ -84,6 +83,10 @@ public class TimingExplorer {
             .addSource(new TimestampSource(PERIOD_MS, SLOWDOWN_FACTOR))
             .uid("timestamp-source")
             .name("timestamp-source");
+
+    if (env.getStreamTimeCharacteristic() == TimeCharacteristic.EventTime) {
+      timestampSource = timestampSource.assignTimestampsAndWatermarks(new SensorDataWatermarkAssigner());
+    }
 
     // Transform into sawtooth pattern
     SingleOutputStreamOperator<DataPoint<Double>> sawtoothStream = timestampSource
