@@ -28,16 +28,16 @@ public class TimingExplorer {
     final boolean eventTime = parameters.getBoolean("eventTime", true);
 
     if (webui) {
-      // start up a webserver (only for use in an IDE)
+      // Start up the webserver (only for use when run in an IDE)
       Configuration conf = new Configuration();
       conf.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true);
       env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
     } else {
-      // connect to whatever cluster can be found
+      // Connect to whatever cluster can be found (which may have its own webserver)
       env = StreamExecutionEnvironment.getExecutionEnvironment();
     }
 
-    // use event time
+    // Use event time
     if (eventTime) {
       env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
     }
@@ -106,7 +106,7 @@ public class TimingExplorer {
             .map(new AssignKeyFunction("pressure"))
             .name("assignKey(pressure");
 
-    // Combine all the streams into one and write it to Kafka
+    // Combine all the streams into one
     DataStream<KeyedDataPoint<Double>> sensorStream = tempStream
             .union(pressureStream);
 
