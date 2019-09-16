@@ -18,23 +18,23 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
-public class TimeDemo {
+public class TimingExplorer {
 
   public static void main(String[] args) throws Exception {
     final StreamExecutionEnvironment env;
     ParameterTool parameters = ParameterTool.fromArgs(args);
 
-    final boolean cluster = parameters.getBoolean("cluster", true);
+    final boolean webui = parameters.getBoolean("webui", false);
     final boolean eventTime = parameters.getBoolean("eventTime", true);
 
-    if (cluster) {
-      // connect to whatever cluster can be found
-      env = StreamExecutionEnvironment.getExecutionEnvironment();
-    } else {
-      // run a mini-cluster in the IDE, and have it start up a webserver
+    if (webui) {
+      // start up a webserver (only for use in an IDE)
       Configuration conf = new Configuration();
       conf.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true);
       env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+    } else {
+      // connect to whatever cluster can be found
+      env = StreamExecutionEnvironment.getExecutionEnvironment();
     }
 
     // use event time
@@ -42,7 +42,7 @@ public class TimeDemo {
       env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
     }
 
-    env.enableCheckpointing(1000);
+    env.enableCheckpointing(10000);
 
     // Simulate some sensor data
     DataStream<KeyedDataPoint<Double>> sensorStream = generateSensorData(env)
@@ -75,7 +75,6 @@ public class TimeDemo {
     env.setParallelism(1);
     env.disableOperatorChaining();
     env.getConfig().setLatencyTrackingInterval(1000);
-    env.getConfig().setAutoWatermarkInterval(2000);
 
     final int SLOWDOWN_FACTOR = 1;
     final int PERIOD_MS = 100;

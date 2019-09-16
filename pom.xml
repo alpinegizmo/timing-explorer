@@ -21,11 +21,11 @@ under the License.
 	<modelVersion>4.0.0</modelVersion>
 	
 	<groupId>com.ververica</groupId>
-	<artifactId>timedemo</artifactId>
+	<artifactId>timing-explorer</artifactId>
 	<version>2.0.0</version>
 	<packaging>jar</packaging>
 
-	<name>Flink Demo Job</name>
+	<name>Flink Time Demo Job</name>
 	<url>http://www.myorganization.org</url>
 
 	<properties>
@@ -291,7 +291,7 @@ under the License.
 							<transformers>
 								<!-- add Main-Class to manifest file -->
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>com.ververica.jobs.TimeDemo</mainClass>
+									<mainClass>com.ververica.jobs.TimingExplorer</mainClass>
 								</transformer>
 							</transformers>
 							<createDependencyReducedPom>false</createDependencyReducedPom>
