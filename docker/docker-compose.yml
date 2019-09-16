@@ -1,33 +1,52 @@
-influxdb:
-  image: 'influxdb:1.5.4-alpine'
-  container_name: influxdb
-  ports:
-    - "8086:8086"
-    - "8088:8088"
-  environment:
-    - INFLUXDB_DATA_ENGINE=tsm1
-    - INFLUXDB_REPORTING_DISABLED=false
+version: '2.1'
 
-grafana:
-  image: 'grafana/grafana:5.1.0'
-  container_name: grafana
-  ports:
-    - "3000:3000"
-  environment:
-    - GF_INSTALL_PLUGINS=grafana-clock-panel,briangann-gauge-panel,natel-plotly-panel,grafana-simple-json-datasource
-  links:
-    - influxdb
+networks:
+  monitor-net:
+    driver: bridge
 
-grafana_setup:
-   build: './grafana_setup'
-   container_name: grafana_setup
-   links:
-     - grafana
+services:
+  influxdb:
+    image: 'influxdb:1.5.4-alpine'
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+      - "8088:8088"
+    environment:
+      - INFLUXDB_DATA_ENGINE=tsm1
+      - INFLUXDB_REPORTING_DISABLED=false
 
-prometheus:
- image: prom/prometheus:v2.12.0
- container_name: prometheus
- ports:
-   - "9090:9090"
- volumes:
-   - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  grafana:
+    image: 'grafana/grafana:5.1.0'
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,briangann-gauge-panel,natel-plotly-panel,grafana-simple-json-datasource
+    links:
+      - influxdb
+
+  grafana_setup:
+     build: './grafana_setup'
+     container_name: grafana_setup
+     links:
+       - grafana
+
+  prometheus:
+    image: prom/prometheus:v2.12.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - monitor-net
+
+#  pushgateway:
+#    image: prom/pushgateway
+#    container_name: pushgateway
+#    expose:
+#      - 9091
+#    ports:
+#      - "9091:9091"
+#    networks:
+#      - monitor-net

@@ -1,9 +1,14 @@
 ---
 global:
-  scrape_interval: 1s
-  evaluation_interval: 1s
+  scrape_interval: 5s
+  evaluation_interval: 5s
 
 scrape_configs:
-- job_name: 'flink'
-  static_configs:
-  - targets: ['host.docker.internal:9250', 'host.docker.internal:9251']
+  - job_name: 'flink'
+    static_configs:
+      - targets: ['host.docker.internal:9250', 'host.docker.internal:9251']
+
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
