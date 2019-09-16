@@ -4,7 +4,6 @@ import com.ververica.functions.AssignKeyFunction;
 import com.ververica.functions.SawtoothFunction;
 import com.ververica.functions.SensorDataWatermarkAssigner;
 import com.ververica.functions.SineWaveFunction;
-import com.ververica.functions.SquareWaveFunction;
 import com.ververica.sinks.InfluxDBSink;
 import com.ververica.sources.TimestampSource;
 import com.ververica.data.DataPoint;
@@ -25,8 +24,8 @@ public class TimeDemo {
     final StreamExecutionEnvironment env;
     ParameterTool parameters = ParameterTool.fromArgs(args);
 
-    final boolean cluster = parameters.getBoolean("cluster", false);
-    final boolean eventTime = parameters.getBoolean("eventTime", false);
+    final boolean cluster = parameters.getBoolean("cluster", true);
+    final boolean eventTime = parameters.getBoolean("eventTime", true);
 
     if (cluster) {
       // connect to whatever cluster can be found
@@ -76,6 +75,7 @@ public class TimeDemo {
     env.setParallelism(1);
     env.disableOperatorChaining();
     env.getConfig().setLatencyTrackingInterval(1000);
+    env.getConfig().setAutoWatermarkInterval(2000);
 
     final int SLOWDOWN_FACTOR = 1;
     final int PERIOD_MS = 100;
@@ -104,17 +104,9 @@ public class TimeDemo {
             .map(new AssignKeyFunction("pressure"))
             .name("assignKey(pressure");
 
-    // Make square wave and use for door sensor
-    SingleOutputStreamOperator<KeyedDataPoint<Double>> doorStream = sawtoothStream
-            .map(new SquareWaveFunction())
-            .name("squareWave")
-            .map(new AssignKeyFunction("door"))
-            .name("assignKey(door)");
-
     // Combine all the streams into one and write it to Kafka
     DataStream<KeyedDataPoint<Double>> sensorStream = tempStream
-            .union(pressureStream)
-            .union(doorStream);
+            .union(pressureStream);
 
     return sensorStream;
   }
