@@ -20,6 +20,7 @@ package com.ververica.sinks;
 import com.ververica.data.DataPoint;
 import com.ververica.data.KeyedDataPoint;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
@@ -34,6 +35,9 @@ public class InfluxDBSink<T extends DataPoint<? extends Number>> extends RichSin
   private static String fieldName = "value";
   private String measurement;
 
+  private transient DescriptiveStatisticsHistogram eventTimeLag;
+  private static final int EVENT_TIME_LAG_WINDOW_SIZE = 10_000;
+
   public InfluxDBSink(String measurement){
     this.measurement = measurement;
   }
@@ -44,6 +48,9 @@ public class InfluxDBSink<T extends DataPoint<? extends Number>> extends RichSin
     influxDB = InfluxDBFactory.connect("http://localhost:8086", "admin", "admin");
     influxDB.createDatabase(dataBaseName);
     influxDB.enableBatch(2000, 100, TimeUnit.MILLISECONDS);
+
+    eventTimeLag = getRuntimeContext().getMetricGroup().histogram("eventTimeLag",
+            new DescriptiveStatisticsHistogram(EVENT_TIME_LAG_WINDOW_SIZE));
   }
 
   @Override
@@ -65,5 +72,6 @@ public class InfluxDBSink<T extends DataPoint<? extends Number>> extends RichSin
 
     influxDB.write(dataBaseName, "autogen", p);
 
+    eventTimeLag.update(System.currentTimeMillis() - dataPoint.getTimeStampMs());
   }
 }
