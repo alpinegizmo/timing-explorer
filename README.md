@@ -1,21 +1,21 @@
 # ReadMe
 
-This application is a playground for experimenting with event time vs processing time, 
-latency tracking metrics, and other time-related explorations in Flink.
+This application is a playground for various time-related explorations with Apache Flink.
 
 # Setup
 
-A local Flink cluster is needed (and not included in the docker setup described below).
-
-For this Flink application a local Grafana and InfluxDB instance are also needed. 
-These can be setup (including basic grafana configuration) via 
+For most of the services that are needed, you can use docker:
 
 ```cd docker && docker-compose up -d```
 
-It will take about one minute until the datasource and dashboard are added to Grafana. 
+This will start influxdb, grafana, and prometheus. 
+It will take about one minute until the datasource and dashboard are added to Grafana.
+
 Grafana is served on `localhost:3000`. Login as admin/admin.
 
-Prometheus is also included in the docker-compose setup, and its UI is served on `localhost:9090`. 
+The Prometheus UI is served on `localhost:9090`.
+
+You will also need a local Flink cluster, which is not included.
 
 ## Note for linux users
 
