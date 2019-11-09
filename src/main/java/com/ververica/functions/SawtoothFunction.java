@@ -2,24 +2,46 @@ package com.ververica.functions;
 
 import com.ververica.data.DataPoint;
 import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.state.ListState;
+import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
-import org.apache.flink.streaming.api.checkpoint.ListCheckpointed;
+import org.apache.flink.runtime.state.FunctionInitializationContext;
+import org.apache.flink.runtime.state.FunctionSnapshotContext;
+import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 
-import java.util.Collections;
-import java.util.List;
-
-public class SawtoothFunction extends RichMapFunction<DataPoint<Long>, DataPoint<Double>> implements ListCheckpointed<Integer> {
+public class SawtoothFunction extends RichMapFunction<DataPoint<Long>, DataPoint<Double>> implements CheckpointedFunction {
 
   final private int numSteps;
   private Counter datapoints;
 
-  // State!
+  // Checkpointed State
+  private transient ListState<Integer> checkpointedStep;
   private int currentStep;
 
   public SawtoothFunction(int numSteps){
     this.numSteps = numSteps;
-    this.currentStep = 0;
+  }
+
+  @Override
+  public void initializeState(FunctionInitializationContext context) throws Exception {
+    ListStateDescriptor<Integer> descriptor = new ListStateDescriptor<>("checkpointedStep", Integer.class);
+
+    this.checkpointedStep = context.getOperatorStateStore().getListState(descriptor);
+
+    if (context.isRestored()) {
+      for (Integer step : checkpointedStep.get()) {
+        this.currentStep = step;
+      }
+    } else {
+      this.currentStep = 0;
+    }
+  }
+
+  @Override
+  public void snapshotState(FunctionSnapshotContext context) throws Exception {
+    checkpointedStep.clear();
+    checkpointedStep.add(currentStep);
   }
 
   @Override
@@ -35,18 +57,6 @@ public class SawtoothFunction extends RichMapFunction<DataPoint<Long>, DataPoint
     currentStep = ++currentStep % numSteps;
     this.datapoints.inc();
     return dataPoint.withNewValue(phase);
-  }
-
-  @Override
-  public void restoreState(List<Integer> state) throws Exception {
-    for (Integer s : state) {
-      this.currentStep = s;
-    }
-  }
-
-  @Override
-  public List<Integer> snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
-    return Collections.singletonList(currentStep);
   }
 
 }

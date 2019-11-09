@@ -40,7 +40,7 @@ public class InfluxDBSink<T extends DataPoint<? extends Number>> extends RichSin
             .time(dataPoint.getTimeStampMs(), TimeUnit.MILLISECONDS)
             .addField(fieldName, dataPoint.getValue());
 
-    if(dataPoint instanceof KeyedDataPoint){
+    if (dataPoint instanceof KeyedDataPoint) {
       builder.tag("key", ((KeyedDataPoint) dataPoint).getKey());
     }
 

@@ -1,6 +1,7 @@
 package com.ververica.jobs;
 
 import com.ververica.functions.AssignKeyFunction;
+import com.ververica.functions.PseudoWindow;
 import com.ververica.functions.SawtoothFunction;
 import com.ververica.functions.SensorDataWatermarkAssigner;
 import com.ververica.functions.SineWaveFunction;
@@ -12,11 +13,15 @@ import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.windowing.time.Time;
+
+import java.nio.file.Paths;
 
 public class TimingExplorer {
 
@@ -24,22 +29,32 @@ public class TimingExplorer {
     final StreamExecutionEnvironment env;
     ParameterTool parameters = ParameterTool.fromArgs(args);
 
-    final boolean webui = parameters.getBoolean("webui", false);
-    final boolean eventTime = parameters.getBoolean("eventTime", true);
+    // Set this to true if you are running in an IDE and want to be able to use the web UI
+    final boolean webui = false;
+
+    final boolean eventTime = parameters.getBoolean("eventTime", false);
+    final boolean useRocksDB = parameters.getBoolean("rocksdb", false);
 
     if (webui) {
       // Start up the webserver (only for use when run in an IDE)
       Configuration conf = new Configuration();
-      conf.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true);
       env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
     } else {
       // Connect to whatever cluster can be found (which may have its own webserver)
       env = StreamExecutionEnvironment.getExecutionEnvironment();
     }
 
+    String cwd = Paths.get(".").toAbsolutePath().normalize().toString();
+    FileSystem.initialize(GlobalConfiguration.loadConfiguration(cwd));
+
     // Use event time
     if (eventTime) {
       env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+    }
+
+    if (useRocksDB) {
+      RocksDBStateBackend backend = new RocksDBStateBackend("file:///tmp/rocksdb-for-timing-explorer");
+      env.setStateBackend(backend);
     }
 
     env.enableCheckpointing(1000);
@@ -54,13 +69,13 @@ public class TimingExplorer {
 
     // Compute a windowed sum over this data and write that to InfluxDB as well.
     sensorStream
-            .keyBy("key")
-            .timeWindow(Time.seconds(1))
-            .sum("value")
+            .keyBy(p -> p.getKey())
+            .process(new PseudoWindow(eventTime, 1000))
             .uid("window")
             .name("window")
             .addSink(new InfluxDBSink<>("summedSensors"))
             .name("summed-sensors-sink");
+
 
     // execute program
     env.execute("Flink Timing Explorer");
@@ -70,7 +85,7 @@ public class TimingExplorer {
 
     // boilerplate for this demo
     env.setRestartStrategy(RestartStrategies.fixedDelayRestart(1000, 1000));
-    env.setMaxParallelism(8);
+    env.setMaxParallelism(128);
     env.setParallelism(1);
     env.disableOperatorChaining();
     env.getConfig().setLatencyTrackingInterval(1000);

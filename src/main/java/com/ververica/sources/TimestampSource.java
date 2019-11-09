@@ -1,19 +1,21 @@
 package com.ververica.sources;
 
 import com.ververica.data.DataPoint;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.checkpoint.ListCheckpointed;
+
+import org.apache.flink.api.common.state.ListState;
+import org.apache.flink.api.common.state.ListStateDescriptor;
+import org.apache.flink.runtime.state.FunctionInitializationContext;
+import org.apache.flink.runtime.state.FunctionSnapshotContext;
+import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
 
-import java.util.Collections;
-import java.util.List;
-
-public class TimestampSource extends RichSourceFunction<DataPoint<Long>> implements ListCheckpointed<Long> {
+public class TimestampSource extends RichSourceFunction<DataPoint<Long>> implements CheckpointedFunction {
   private final int periodMs;
   private final int slowdownFactor;
   private volatile boolean running = true;
 
   // Checkpointed State
+  private transient ListState<Long> checkpointedTime;
   private volatile long currentTimeMs = 0;
 
   public TimestampSource(int periodMs, int slowdownFactor){
@@ -22,12 +24,27 @@ public class TimestampSource extends RichSourceFunction<DataPoint<Long>> impleme
   }
 
   @Override
-  public void open(Configuration parameters) throws Exception {
-    super.open(parameters);
-    long now = System.currentTimeMillis();
-    if(currentTimeMs == 0) {
-      currentTimeMs = now - (now % 1000); // floor to second boundary
+  public void initializeState(FunctionInitializationContext context) throws Exception {
+    ListStateDescriptor<Long> descriptor = new ListStateDescriptor<>(
+            "checkpointedTime",
+            Long.class);
+
+    this.checkpointedTime = context.getOperatorStateStore().getListState(descriptor);
+
+    if (context.isRestored()) {
+      for (Long ts : checkpointedTime.get()) {
+        this.currentTimeMs = ts;
+      }
+    } else {
+      long now = System.currentTimeMillis();
+      this.currentTimeMs = now - (now % 1000); // floor to second boundary
     }
+  }
+
+  @Override
+  public void snapshotState(FunctionSnapshotContext context) throws Exception {
+    checkpointedTime.clear();
+    checkpointedTime.add(currentTimeMs);
   }
 
   @Override
@@ -46,27 +63,16 @@ public class TimestampSource extends RichSourceFunction<DataPoint<Long>> impleme
     running = false;
   }
 
-  @Override
-  public List<Long> snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
-    return Collections.singletonList(currentTimeMs);
-  }
-
-  @Override
-  public void restoreState(List<Long> state) throws Exception {
-    for (Long s : state)
-      currentTimeMs = s;
-  }
-
   private void timeSync() throws InterruptedException {
     // Sync up with real time
     long realTimeDeltaMs = currentTimeMs - System.currentTimeMillis();
     long sleepTime = periodMs + realTimeDeltaMs + randomJitter();
 
-    if(slowdownFactor != 1){
+    if (slowdownFactor != 1) {
       sleepTime = periodMs * slowdownFactor;
     }
 
-    if(sleepTime > 0) {
+    if (sleepTime > 0) {
       Thread.sleep(sleepTime);
     }
   }
