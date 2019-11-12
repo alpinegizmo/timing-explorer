@@ -25,8 +25,8 @@ under the License.
 	<version>2.0.0</version>
 	<packaging>jar</packaging>
 
-	<name>Flink Time Demo Job</name>
-	<url>http://www.myorganization.org</url>
+	<name>Flink Timing Explorer</name>
+	<url>http://ververica.com</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -103,6 +103,7 @@ under the License.
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-statebackend-rocksdb_${scala.binary.version}</artifactId>
 			<version>${flink.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>

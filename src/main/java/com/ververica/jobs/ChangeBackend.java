@@ -170,7 +170,7 @@ public class ChangeBackend {
 			MemoryStateBackend backend = new MemoryStateBackend();
 			sp = Savepoint.load(env, pathToSavepoint, backend);
 		} else {
-			RocksDBStateBackend backend = new RocksDBStateBackend("file:///tmp/rocksdb2");
+			RocksDBStateBackend backend = new RocksDBStateBackend("file:///tmp/rocksdb-for-reading-savepoint");
 			sp = Savepoint.load(env, pathToSavepoint, backend);
 		}
 
@@ -203,7 +203,7 @@ public class ChangeBackend {
 					.transform(new WindowBootstrapper(eventTime));
 
 			Savepoint
-					.create(new RocksDBStateBackend("file:///tmp/rocksdb"), 128)
+					.create(new RocksDBStateBackend("file:///tmp/rocksdb-for-writing-savepoint"), 128)
 					.withOperator("timestamp-source", sourceXform)
 					.withOperator("sawTooth", stepXform)
 					.withOperator("window", windowXform)
