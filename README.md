@@ -15,7 +15,7 @@ Grafana is served on `localhost:3000`. Login as admin/admin.
 
 The Prometheus UI is served on `localhost:9090`.
 
-You can just run this app in an IDE, which will supply the missing pieces of Flink. There's no need
+You can run this app in an IDE, which will supply the necessary pieces of Flink. There's no need
 to run a separate Flink cluster.
 
 To shut things down, use
@@ -69,7 +69,7 @@ that measures the distribution of latencies from source to sink. You can query
 
 ### Affecting latency
 
-You can try making a change to the job that should make latency dramatically worse, and see 
+You can try making a change to the job that should make latency significantly worse, and see 
 how that shows up in these measurements.
 
 ## State Backends
@@ -77,12 +77,14 @@ how that shows up in these measurements.
 This project includes an example of how to switch from one state backend to another using the
 State Processor API.
 
-`ChangeBackend` is another Flink application in this project. It can read a savepoint from the 
-`TimingExplorer` app made with a heap-based state backend, and write
-out a new savepoint that uses the RocksDB state backend. 
+`ChangeBackend` is another Flink application that is included in this project. 
+This application uses the State Processor API to read a savepoint made by running the 
+`TimingExplorer` app with a heap-based state backend, and it can then write
+out a new savepoint that uses the RocksDB state backend. Since the `TimingExplorer` uses operator state,
+keyed state, and timers, `ChangeBackend` is a fairly complete example of how to work with the State Processor API.
 
-You can then run `TimingExplorer` 
-with `useRocksDB` set to true. and restart the application using that rocksDB-based savepoint.
+To verify that the new savepoint works correctly, you can run `TimingExplorer` 
+with `useRocksDB` set to true. and restart the application from the new RocksDB-based savepoint.
 
 # Disclaimer
 Apache®, Apache Flink™, Flink™, and the Apache feather logo are trademarks of [The Apache Software Foundation](http://apache.org).
