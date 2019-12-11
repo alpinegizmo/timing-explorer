@@ -28,7 +28,6 @@ import com.ververica.data.DataPoint;
 import com.ververica.data.KeyedDataPoint;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
@@ -43,26 +42,26 @@ import java.nio.file.Paths;
 public class TimingExplorer {
 
   public static void main(String[] args) throws Exception {
+    String cwd = Paths.get(".").toAbsolutePath().normalize().toString();
+    Configuration conf = GlobalConfiguration.loadConfiguration(cwd);
+
     final StreamExecutionEnvironment env;
     ParameterTool parameters = ParameterTool.fromArgs(args);
 
-    // Set this to true if you are running in an IDE and want to be able to use the web UI
-    final boolean webui = false;
+    // Set this to false if you aren't running in an IDE
+    final boolean webui = true;
 
     final boolean eventTime = parameters.getBoolean("eventTime", false);
     final boolean useRocksDB = parameters.getBoolean("rocksdb", false);
 
     if (webui) {
       // Start up the webserver (only for use when run in an IDE)
-      Configuration conf = new Configuration();
       env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
     } else {
       // Connect to whatever cluster can be found (which may have its own webserver)
       env = StreamExecutionEnvironment.getExecutionEnvironment();
+      FileSystem.initialize(GlobalConfiguration.loadConfiguration(cwd));
     }
-
-    String cwd = Paths.get(".").toAbsolutePath().normalize().toString();
-    FileSystem.initialize(GlobalConfiguration.loadConfiguration(cwd));
 
     // Use event time
     if (eventTime) {

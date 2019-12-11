@@ -15,8 +15,8 @@ Grafana is served on `localhost:3000`. Login as admin/admin.
 
 The Prometheus UI is served on `localhost:9090`.
 
-You will also need a local Flink cluster, which is not included, or you can just run this app in 
-your IDE, which will supply the missing pieces of Flink.
+You can just run this app in an IDE, which will supply the missing pieces of Flink. There's no need
+to run a separate Flink cluster.
 
 To shut things down, use
 
@@ -48,14 +48,11 @@ exactly the 10 events generated each second. However, because the windowing is b
 time semantics, each window contains however many events happen to be available, whether that's 8, or 11, or
 whatever, which leads to the non-deterministic results shown above.
 
-If you rerun the application with `--eventTime true`, then it will produce deterministic results:
+If you rerun the application with `eventTime` set to true, then it will produce deterministic results:
 
 ![](images/pressure-window-event-time.png)
 
 ## Measuring Latency
-
-To explore the metrics you will need to start a real Flink cluster, rather than relying on the
-mini cluster that runs in your IDE.
 
 This job has latency tracking enabled, so you can observe the latency tracking metrics. The docker setup
 includes an instance of prometheus at `localhost:9090` that you can use to inspect these metrics. Look at
@@ -85,7 +82,7 @@ State Processor API.
 out a new savepoint that uses the RocksDB state backend. 
 
 You can then run `TimingExplorer` 
-with `--rocksdb true` to restart the application using that new savepoint.
+with `useRocksDB` set to true. and restart the application using that rocksDB-based savepoint.
 
 # Disclaimer
 Apache®, Apache Flink™, Flink™, and the Apache feather logo are trademarks of [The Apache Software Foundation](http://apache.org).
