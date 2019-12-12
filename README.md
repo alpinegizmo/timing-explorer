@@ -74,7 +74,7 @@ that measures the distribution of latencies from source to sink. You can query
 
 ### Affecting Latency
 
-You can try making a change to the job that should make latency significantly worse, and see 
+You can try making a change to the job that should make the latency significantly better or worse, and see 
 how that shows up in these measurements.
 
 ## Changing the State Backend
