@@ -41,30 +41,29 @@ import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.util.Collector;
 
 import com.ververica.data.KeyedDataPoint;
-import com.ververica.functions.PseudoWindow;
 
 import java.util.Map;
 
 public class ChangeBackend {
 	static class PseudoWindowReaderFunction extends
-			KeyedStateReaderFunction<String, KeyedDataPoint<Double>> {
-		MapState<Long, Double> sumOfValuesInWindow;
+			KeyedStateReaderFunction<String, KeyedDataPoint<Integer>> {
+		MapState<Long, Integer> countInWindow;
 
 		@Override
 		public void open(Configuration parameters) {
-			MapStateDescriptor<Long, Double> sumDesc =
-					new MapStateDescriptor<>("sumOfValuesInWindow", Long.class, Double.class);
-			sumOfValuesInWindow = getRuntimeContext().getMapState(sumDesc);
+			MapStateDescriptor<Long, Integer> countDesc =
+					new MapStateDescriptor<>("countInWindow", Long.class, Integer.class);
+			countInWindow = getRuntimeContext().getMapState(countDesc);
 		}
 
 		@Override
 		public void readKey(
 				String key,
 				Context context,
-				Collector<KeyedDataPoint<Double>> out) throws Exception {
+				Collector<KeyedDataPoint<Integer>> out) throws Exception {
 
-			for (Map.Entry<Long, Double> entry : sumOfValuesInWindow.entries()) {
-				out.collect(new KeyedDataPoint<Double>(key, entry.getKey(), entry.getValue()));
+			for (Map.Entry<Long, Integer> entry : countInWindow.entries()) {
+				out.collect(new KeyedDataPoint<Integer>(key, entry.getKey(), entry.getValue()));
 			}
 		}
 	}
@@ -123,8 +122,8 @@ public class ChangeBackend {
 		}
 	}
 
-	public static class WindowBootstrapper extends KeyedStateBootstrapFunction<String, KeyedDataPoint<Double>> {
-		private MapState<Long, Double> sumOfValuesInWindow;
+	public static class WindowBootstrapper extends KeyedStateBootstrapFunction<String, KeyedDataPoint<Integer>> {
+		private MapState<Long, Integer> countInWindow;
 		boolean eventTimeProcessing;
 
 		public WindowBootstrapper(boolean eventTime) {
@@ -133,18 +132,18 @@ public class ChangeBackend {
 
 		@Override
 		public void open(Configuration parameters) {
-			MapStateDescriptor<Long, Double> sumDesc =
-					new MapStateDescriptor<>("sumOfValuesInWindow", Long.class, Double.class);
-			sumOfValuesInWindow = getRuntimeContext().getMapState(sumDesc);
+			MapStateDescriptor<Long, Integer> countDesc =
+					new MapStateDescriptor<>("countInWindow", Long.class, Integer.class);
+			countInWindow = getRuntimeContext().getMapState(countDesc);
 		}
 
 		@Override
-		public void processElement(KeyedDataPoint<Double> value, Context ctx) throws Exception {
+		public void processElement(KeyedDataPoint<Integer> value, Context ctx) throws Exception {
 			TimerService timerService = ctx.timerService();
 
 			System.out.println("----keyed data point into window:");
 			System.out.println(value.toString());
-			sumOfValuesInWindow.put(value.getTimeStampMs(), value.getValue());
+			countInWindow.put(value.getTimeStampMs(), value.getValue());
 
 			if (eventTimeProcessing) {
 				timerService.registerEventTimeTimer(value.getTimeStampMs());
@@ -156,12 +155,11 @@ public class ChangeBackend {
 
 	public static void main(String[] args) throws Exception {
 		ParameterTool parameters = ParameterTool.fromArgs(args);
-//		final String pathToSavepoint = parameters.get("input");
 		final boolean eventTime = parameters.getBoolean("eventTime", true);
 		final boolean heap = parameters.getBoolean("heap-based-input", true);
 		final boolean save = parameters.getBoolean("save", true);
-		final String pathToSavepoint = "/Users/david/stuff/timing-explorer/sp/savepoint-80abd5-11fe245844be";
-//		final String pathToSavepoint = "/tmp/new-savepoint";
+
+		final String pathToSavepoint = "/Users/david/stuff/timing-explorer/sp/savepoint-a74596-0f026b1cb709";
 
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 		ExistingSavepoint sp;
@@ -178,7 +176,7 @@ public class ChangeBackend {
 				"timestamp-source", "checkpointedTime", Types.LONG);
 		DataSet<Integer> currentStep = sp.readListState(
 				"sawTooth", "checkpointedStep", Types.INT);
-		DataSet<KeyedDataPoint<Double>> keyedState = sp.readKeyedState(
+		DataSet<KeyedDataPoint<Integer>> keyedState = sp.readKeyedState(
 				"window", new PseudoWindowReaderFunction());
 
 		System.out.println("----currentTimeMs from timestamp-source:");
@@ -197,7 +195,7 @@ public class ChangeBackend {
 					.bootstrapWith(currentStep)
 					.transform(new StepBootstrapper());
 
-			BootstrapTransformation<KeyedDataPoint<Double>> windowXform = OperatorTransformation
+			BootstrapTransformation<KeyedDataPoint<Integer>> windowXform = OperatorTransformation
 					.bootstrapWith(keyedState)
 					.keyBy(x -> x.getKey())
 					.transform(new WindowBootstrapper(eventTime));

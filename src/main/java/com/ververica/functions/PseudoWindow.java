@@ -30,10 +30,10 @@ import com.ververica.data.KeyedDataPoint;
  * For each sensor (the keys), compute the sum of its values over windows that are durationMsec long.
  */
 
-public class PseudoWindow extends KeyedProcessFunction<String, KeyedDataPoint<Double>, KeyedDataPoint<Double>> {
+public class PseudoWindow extends KeyedProcessFunction<String, KeyedDataPoint<Double>, KeyedDataPoint<Integer>> {
 	// Keyed, managed state, with an entry for each window.
 	// There is a separate MapState object for each sensor.
-	private MapState<Long, Double> sumOfValuesInWindow;
+	private MapState<Long, Integer> countInWindow;
 
 	boolean eventTimeProcessing;
 	int durationMsec;
@@ -50,25 +50,25 @@ public class PseudoWindow extends KeyedProcessFunction<String, KeyedDataPoint<Do
 
 	@Override
 	public void open(Configuration config) {
-		MapStateDescriptor<Long, Double> sumDesc =
-				new MapStateDescriptor<>("sumOfValuesInWindow", Long.class, Double.class);
-		sumOfValuesInWindow = getRuntimeContext().getMapState(sumDesc);
+		MapStateDescriptor<Long, Integer> countDesc =
+				new MapStateDescriptor<>("countInWindow", Long.class, Integer.class);
+		countInWindow = getRuntimeContext().getMapState(countDesc);
 	}
 
 	@Override
 	public void processElement(
 			KeyedDataPoint<Double> dataPoint,
 			Context ctx,
-			Collector<KeyedDataPoint<Double>> out) throws Exception {
+			Collector<KeyedDataPoint<Integer>> out) throws Exception {
 
 		long endOfWindow = setTimer(dataPoint, ctx.timerService());
 
-		Double sum = sumOfValuesInWindow.get(endOfWindow);
-		if (sum == null) {
-			sum = 0D;
+		Integer count = countInWindow.get(endOfWindow);
+		if (count == null) {
+			count = 0;
 		}
-		sum += dataPoint.getValue();
-		sumOfValuesInWindow.put(endOfWindow, sum);
+		count += 1;
+		countInWindow.put(endOfWindow, count);
 	}
 
 	public long setTimer(KeyedDataPoint<Double> dataPoint, TimerService timerService) {
@@ -90,11 +90,11 @@ public class PseudoWindow extends KeyedProcessFunction<String, KeyedDataPoint<Do
 	}
 
 	@Override
-	public void onTimer(long timestamp, OnTimerContext context, Collector<KeyedDataPoint<Double>> out) throws Exception {
-		// Get the timestamp for this timer and use it to look up the sum of the values for that window
+	public void onTimer(long timestamp, OnTimerContext context, Collector<KeyedDataPoint<Integer>> out) throws Exception {
+		// Get the timestamp for this timer and use it to look up the count for that window
 		long ts = context.timestamp();
-		KeyedDataPoint<Double> result = new KeyedDataPoint<>(context.getCurrentKey(), ts, sumOfValuesInWindow.get(ts));
+		KeyedDataPoint<Integer> result = new KeyedDataPoint<>(context.getCurrentKey(), ts, countInWindow.get(ts));
 		out.collect(result);
-		sumOfValuesInWindow.remove(timestamp);
+		countInWindow.remove(timestamp);
 	}
 }

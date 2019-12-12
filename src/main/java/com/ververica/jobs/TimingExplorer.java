@@ -89,8 +89,8 @@ public class TimingExplorer {
             .process(new PseudoWindow(eventTime, 1000))
             .uid("window")
             .name("window")
-            .addSink(new InfluxDBSink<>("summedSensors"))
-            .name("summed-sensors-sink");
+            .addSink(new InfluxDBSink<>("eventsPerSecond"))
+            .name("events-per-second-sink");
 
 
     // execute program
