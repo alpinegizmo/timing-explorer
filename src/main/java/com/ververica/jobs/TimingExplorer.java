@@ -30,11 +30,12 @@ import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
-import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
+import org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend;
 import org.apache.flink.core.fs.FileSystem;
-import org.apache.flink.streaming.api.TimeCharacteristic;
+import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.nio.file.Paths;
@@ -49,10 +50,9 @@ public class TimingExplorer {
     ParameterTool parameters = ParameterTool.fromArgs(args);
 
     // Set this to false if you aren't running in an IDE
-    final boolean webui = true;
+    final boolean webui = false;
 
-    final boolean eventTime = parameters.getBoolean("eventTime", false);
-    final boolean useRocksDB = parameters.getBoolean("rocksdb", false);
+    final boolean useRocksDB = parameters.has("rocksdb");
 
     if (webui) {
       // Start up the webserver (only for use when run in an IDE)
@@ -60,20 +60,21 @@ public class TimingExplorer {
     } else {
       // Connect to whatever cluster can be found (which may have its own webserver)
       env = StreamExecutionEnvironment.getExecutionEnvironment();
-      FileSystem.initialize(GlobalConfiguration.loadConfiguration(cwd));
-    }
-
-    // Use event time
-    if (eventTime) {
-      env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+      FileSystem.initialize(conf);
     }
 
     if (useRocksDB) {
-      RocksDBStateBackend backend = new RocksDBStateBackend("file:///tmp/rocksdb-for-timing-explorer");
+      EmbeddedRocksDBStateBackend backend = new EmbeddedRocksDBStateBackend();
+      backend.isIncrementalCheckpointsEnabled();
       env.setStateBackend(backend);
+    } else {
+      env.setStateBackend(new HashMapStateBackend());
     }
+    env.getCheckpointConfig().setCheckpointStorage("file:///tmp/checkpoints");
 
     env.enableCheckpointing(1000);
+    CheckpointConfig config = env.getCheckpointConfig();
+    config.enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
 
     // Simulate some sensor data
     DataStream<KeyedDataPoint<Double>> sensorStream = generateSensorData(env);
@@ -86,12 +87,20 @@ public class TimingExplorer {
     // Compute a windowed sum over this data and write that to InfluxDB as well.
     sensorStream
             .keyBy(p -> p.getKey())
-            .process(new PseudoWindow(eventTime, 1000))
-            .uid("window")
-            .name("window")
+            .process(new PseudoWindow(true, 1000))
+            .uid("event-time-window")
+            .name("event-time-window")
             .addSink(new InfluxDBSink<>("eventsPerSecond"))
             .name("events-per-second-sink");
 
+    // Compute a windowed sum over this data and write that to InfluxDB as well.
+    sensorStream
+            .keyBy(p -> p.getKey())
+            .process(new PseudoWindow(false, 1000))
+            .uid("processing-time-window")
+            .name("processing-time-window")
+            .addSink(new InfluxDBSink<>("eventsProcessedPerSecond"))
+            .name("events-processed-per-second-sink");
 
     // execute program
     env.execute("Flink Timing Explorer");
@@ -115,9 +124,7 @@ public class TimingExplorer {
             .uid("timestamp-source")
             .name("timestamp-source");
 
-    if (env.getStreamTimeCharacteristic() == TimeCharacteristic.EventTime) {
-      timestampSource = timestampSource.assignTimestampsAndWatermarks(new SensorDataWatermarkAssigner());
-    }
+    timestampSource = timestampSource.assignTimestampsAndWatermarks(new SensorDataWatermarkAssigner());
 
     // Transform into sawtooth pattern
     SingleOutputStreamOperator<DataPoint<Double>> sawtoothStream = timestampSource
