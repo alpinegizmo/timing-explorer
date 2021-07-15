@@ -27,6 +27,8 @@ metrics.reporters: prom
 metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusReporter
 metrics.reporter.prom.port: 9250-9260
 
+state.backend.incremental: true
+
 # metrics.reporter.promgateway.class: org.apache.flink.metrics.prometheus.PrometheusPushGatewayReporter
 # metrics.reporter.promgateway.host: localhost
 # metrics.reporter.promgateway.port: 9091
