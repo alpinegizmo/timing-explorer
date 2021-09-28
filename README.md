@@ -12,25 +12,16 @@ docker-compose build
 docker-compose up -d
 ```
 
-This will start influxdb, grafana, and prometheus. 
+This will start influxdb and grafana. 
 It will take about one minute until the data source and dashboard are added to Grafana.
 
 Grafana is served on `localhost:3000`. Login as admin/admin.
 
-The Prometheus UI is served on `localhost:9090`.
-
-You can run this app in an IDE, which will supply the necessary pieces of Flink. There's no need
-to run a separate Flink cluster.
+You can configure this app to in an IDE, which will supply the necessary pieces of Flink. There's no need to run a separate Flink cluster, but if you do, you can experiment with killing the taskmanager and restarting it, which makes for a nicely visual demonstration of what happens during recovery.
 
 To shut things down, use
 
 ```docker-compose down```
-
-## Note for linux Users
-
-The prometheus configuration works out of the box for Mac and Windows, but on Linux you will need to 
-edit `docker/prometheus/prometheus.yml` before starting docker, and change both instances of 
-`host.docker.internal` to `172.17.0.1`.
 
 # Explorations
 
